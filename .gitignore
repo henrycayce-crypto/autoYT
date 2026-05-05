@@ -1,0 +1,17 @@
+# Private API keys and credentials
+API_key.env
+client_secret.json
+youtube_token.pickle
+
+# Python cache files
+__pycache__/
+*.pyc
+
+# Generated project outputs
+final_output.mp4
+template/agent_output.json
+template/chosen_post.json
+seen_posts.json
+
+# Mac system files
+.DS_Store
