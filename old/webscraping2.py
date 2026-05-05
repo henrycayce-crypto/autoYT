@@ -1,18 +1,9 @@
-import json
-import os
-import random
 import requests # the requests library is used to make HTTP requests to the Reddit API.
-from io import BytesIO
-from PIL import Image
 
 # settings and variables
 SUBREDDITS = ["funny"]
 POST_LIMIT = 20
 TIME_FILTER = "day"
-
-MIN_IMAGE_RATIO = 0.7
-MAX_IMAGE_RATIO = 2.5
-IMAGE_CHECK_TIMEOUT = 5
 
 # more descriptive User-Agent fixes the 403 block
 HEADERS = {"User-Agent": "python:my_scraper:v1.0"}  # header to avoid request blocking
@@ -31,11 +22,6 @@ def get_top_posts(subreddit, limit, time_filter):  # function to retrieve top su
 
             # skip posts that dont have an image attached
             if not _has_image(post_data):
-                continue
-
-            image_url = _get_image_url(post_data)
-            
-            if not _is_valid_image_ratio(image_url):
                 continue
 
             posts.append({
@@ -68,32 +54,6 @@ def _has_image(post_data):  # checks if the post has a valid image attached
 def _get_image_url(post_data):  # pulls the image url out of the post data
     return post_data.get("url", None)
 
-def _is_valid_image_ratio(image_url):
-    try:
-        response = requests.get(
-            image_url,
-            headers=HEADERS,
-            timeout=IMAGE_CHECK_TIMEOUT
-        )
-        response.raise_for_status()
-
-        img = Image.open(BytesIO(response.content))
-        width, height = img.size
-
-        if width <= 0 or height <= 0:
-            return False
-
-        ratio = width / height
-
-        if MIN_IMAGE_RATIO <= ratio <= MAX_IMAGE_RATIO:
-            return True
-
-        print(f"Skipping image with ratio {ratio:.2f}: {image_url}")
-        return False
-
-    except Exception as e:
-        print(f"Skipping image because dimensions could not be checked: {e}")
-        return False
 
 def display_posts(subreddit, posts):  # print posts in a readable format
 
@@ -114,42 +74,15 @@ def display_posts(subreddit, posts):  # print posts in a readable format
         print(f"  Post Link  : {post['post_link']}")  # post URL
         print(f"  Image URL  : {post['image_url']}")  # image url attached to the post
         print(f"  {'-'*50}")  # divider
-def load_seen_posts():
-    if os.path.exists("seen_posts.json"):
-        with open("seen_posts.json", "r") as f:
-            return json.load(f)
-    return []
-
-def save_seen_posts(seen_posts):
-    with open("seen_posts.json", "w") as f:
-        json.dump(seen_posts, f)
 
 # Then in main(), instead of displaying all posts:
 def main():
-    seen_posts = load_seen_posts()
-
     for subreddit in SUBREDDITS:
         posts = get_top_posts(subreddit, POST_LIMIT, TIME_FILTER)
         if posts:
-            unseen = [p for p in posts if p["post_link"] not in seen_posts]
-
-            if not unseen:
-                print(f"All posts seen for r/{subreddit} — resetting history")
-                seen_posts = []
-                unseen = posts
-
-            chosen = random.choice(unseen)
-            display_posts(subreddit, [chosen]) # only displaying the 1 chosen post
-            
-            with open("template/chosen_post.json", "w") as f:
-                json.dump({
-                    "caption": chosen["title"],
-                    "image_url": chosen["image_url"],
-                    "post_link": chosen["post_link"]
-                    }, f)
-
-            seen_posts.append(chosen["post_link"])
-            save_seen_posts(seen_posts)
+            # Randomly pick ONE post from the list
+            random_post = random.choice(posts)
+            display_posts(subreddit, [random_post])  # wrap in list
             
 if __name__ == "__main__":
     main()
